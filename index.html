@@ -71,21 +71,31 @@
             timestamp: new Date().toISOString()
           };
 
+          console.log('Sending payload to n8n:', payload);
+
           const response = await fetch(formData.n8nWebhookUrl, {
             method: 'POST',
+            mode: 'cors',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(payload)
           });
 
+          console.log('Response status:', response.status);
+
           if (!response.ok) {
-            throw new Error(`Workflow request failed: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`Workflow request failed: ${response.status} ${response.statusText}`);
           }
+
+          const result = await response.json().catch(() => ({}));
+          console.log('Success response:', result);
 
           setStatus({
             type: 'success',
-            message: 'Successfully submitted to n8n workflow!'
+            message: 'Successfully submitted to n8n workflow! Check console for details.'
           });
 
           setFormData({
@@ -97,9 +107,10 @@
           });
 
         } catch (err) {
+          console.error('Submit error:', err);
           setStatus({
             type: 'error',
-            message: err.message || 'Failed to submit to workflow'
+            message: err.message || 'Failed to submit to workflow. Check browser console for details.'
           });
         } finally {
           setLoading(false);
@@ -213,6 +224,23 @@
                 React.createElement('li', null, '2. Upload your CV (text, PDF, or Word document)'),
                 React.createElement('li', null, '3. Paste job links from LinkedIn and RigZone (one per line)'),
                 React.createElement('li', null, '4. Submit to trigger your n8n workflow')
+              ),
+              React.createElement('div', { className: 'mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' },
+                React.createElement('h4', { className: 'text-sm font-semibold text-yellow-800 mb-2' }, '⚠️ Important: CORS Setup Required'),
+                React.createElement('p', { className: 'text-xs text-yellow-700 mb-2' }, 
+                  'Your n8n webhook must allow requests from this domain. In your n8n Webhook node:'
+                ),
+                React.createElement('ul', { className: 'text-xs text-yellow-700 space-y-1 list-disc list-inside' },
+                  React.createElement('li', null, 'Set "Response Mode" to "Using Webhook"'),
+                  React.createElement('li', null, 'Enable "OPTIONS Method"'),
+                  React.createElement('li', null, 
+                    'Add header: ',
+                    React.createElement('code', { className: 'bg-yellow-100 px-1' }, 'Access-Control-Allow-Origin: *')
+                  )
+                ),
+                React.createElement('p', { className: 'text-xs text-yellow-700 mt-2' },
+                  'Open browser DevTools (F12) → Console tab to see detailed error messages.'
+                )
               )
             )
           )
@@ -224,4 +252,5 @@
     root.render(React.createElement(N8NWorkflowForm));
   </script>
 </body>
+
 </html>
