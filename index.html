@@ -1,256 +1,272 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>N8N Job Search Workflow</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <div id="root"></div>
-  
-  <script type="module">
-    import React, { useState } from 'https://esm.sh/react@18';
-    import ReactDOM from 'https://esm.sh/react-dom@18/client';
-    import { Upload, Briefcase, Link, Send, CheckCircle, AlertCircle } from 'https://esm.sh/lucide-react@0.263.1';
+import React, { useState } from 'react';
+import { Upload, Briefcase, Link, Send, CheckCircle, AlertCircle } from 'lucide-react';
 
-    function N8NWorkflowForm() {
-      const [formData, setFormData] = useState({
+export default function N8NWorkflowForm() {
+  const [formData, setFormData] = useState({
+    cvFile: null,
+    cvText: '',
+    linkedinUrls: '',
+    rigzoneUrls: '',
+    n8nWebhookUrl: ''
+  });
+  const [status, setStatus] = useState({ type: '', message: '' });
+  const [loading, setLoading] = useState(false);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({ ...formData, cvFile: file });
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormData(prev => ({ ...prev, cvText: event.target.result }));
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      if (!formData.n8nWebhookUrl) {
+        throw new Error('Please enter your n8n webhook URL');
+      }
+
+      if (!formData.cvText) {
+        throw new Error('Please upload a CV file');
+      }
+
+      const linkedinLinks = formData.linkedinUrls
+        .split('\n')
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
+      
+      const rigzoneLinks = formData.rigzoneUrls
+        .split('\n')
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
+
+      const payload = {
+        cv: formData.cvText,
+        cvFileName: formData.cvFile?.name || 'cv.txt',
+        jobLinks: {
+          linkedin: linkedinLinks,
+          rigzone: rigzoneLinks
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Sending payload to n8n:', payload);
+
+      const response = await fetch(formData.n8nWebhookUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add your auth header here if needed
+          // 'Authorization': 'Bearer YOUR_TOKEN'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Workflow request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Success response:', result);
+
+      setStatus({
+        type: 'success',
+        message: 'Successfully submitted to n8n workflow! Check console for details.'
+      });
+
+      setFormData({
+        ...formData,
         cvFile: null,
         cvText: '',
         linkedinUrls: '',
-        rigzoneUrls: '',
-        n8nWebhookUrl: ''
+        rigzoneUrls: ''
       });
-      const [status, setStatus] = useState({ type: '', message: '' });
-      const [loading, setLoading] = useState(false);
 
-      const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          setFormData({ ...formData, cvFile: file });
-          
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            setFormData(prev => ({ ...prev, cvText: event.target.result }));
-          };
-          reader.readAsText(file);
-        }
-      };
-
-      const handleSubmit = async () => {
-        setLoading(true);
-        setStatus({ type: '', message: '' });
-
-        try {
-          if (!formData.n8nWebhookUrl) {
-            throw new Error('Please enter your n8n webhook URL');
-          }
-
-          if (!formData.cvText) {
-            throw new Error('Please upload a CV file');
-          }
-
-          const linkedinLinks = formData.linkedinUrls
-            .split('\n')
-            .map(url => url.trim())
-            .filter(url => url.length > 0);
-          
-          const rigzoneLinks = formData.rigzoneUrls
-            .split('\n')
-            .map(url => url.trim())
-            .filter(url => url.length > 0);
-
-          const payload = {
-            cv: formData.cvText,
-            cvFileName: formData.cvFile?.name || 'cv.txt',
-            jobLinks: {
-              linkedin: linkedinLinks,
-              rigzone: rigzoneLinks
-            },
-            timestamp: new Date().toISOString()
-          };
-
-          console.log('Sending payload to n8n:', payload);
-
-          const response = await fetch(formData.n8nWebhookUrl, {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
-          });
-
-          console.log('Response status:', response.status);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-            throw new Error(`Workflow request failed: ${response.status} ${response.statusText}`);
-          }
-
-          const result = await response.json().catch(() => ({}));
-          console.log('Success response:', result);
-
-          setStatus({
-            type: 'success',
-            message: 'Successfully submitted to n8n workflow! Check console for details.'
-          });
-
-          setFormData({
-            ...formData,
-            cvFile: null,
-            cvText: '',
-            linkedinUrls: '',
-            rigzoneUrls: ''
-          });
-
-        } catch (err) {
-          console.error('Submit error:', err);
-          setStatus({
-            type: 'error',
-            message: err.message || 'Failed to submit to workflow. Check browser console for details.'
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4' },
-        React.createElement('div', { className: 'max-w-4xl mx-auto' },
-          React.createElement('div', { className: 'bg-white rounded-2xl shadow-xl p-8' },
-            React.createElement('div', { className: 'text-center mb-8' },
-              React.createElement('div', { className: 'flex justify-center mb-4' },
-                React.createElement(Briefcase, { className: 'w-16 h-16 text-indigo-600' })
-              ),
-              React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 mb-2' }, 'Job Search Workflow'),
-              React.createElement('p', { className: 'text-gray-600' }, 'Upload your CV and add job links to process through n8n')
-            ),
-            React.createElement('div', { className: 'space-y-6' },
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' }, 'N8N Webhook URL *'),
-                React.createElement('input', {
-                  type: 'url',
-                  value: formData.n8nWebhookUrl,
-                  onChange: (e) => setFormData({ ...formData, n8nWebhookUrl: e.target.value }),
-                  placeholder: 'https://your-n8n-instance.com/webhook/...',
-                  className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
-                }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your n8n workflow webhook URL')
-              ),
-              React.createElement('div', { className: 'border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-indigo-400 transition-colors' },
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-3' },
-                  React.createElement(Upload, { className: 'w-5 h-5 inline mr-2' }),
-                  'Upload CV *'
-                ),
-                React.createElement('input', {
-                  type: 'file',
-                  onChange: handleFileUpload,
-                  accept: '.txt,.pdf,.doc,.docx',
-                  className: 'w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
-                }),
-                formData.cvFile && React.createElement('p', { className: 'text-sm text-green-600 mt-2 flex items-center' },
-                  React.createElement(CheckCircle, { className: 'w-4 h-4 mr-1' }),
-                  formData.cvFile.name
-                )
-              ),
-              formData.cvText && React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' }, 'CV Preview'),
-                React.createElement('textarea', {
-                  value: formData.cvText,
-                  onChange: (e) => setFormData({ ...formData, cvText: e.target.value }),
-                  rows: 6,
-                  className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm',
-                  placeholder: 'CV content will appear here...'
-                })
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' },
-                  React.createElement(Link, { className: 'w-4 h-4 inline mr-2' }),
-                  'LinkedIn Job Links'
-                ),
-                React.createElement('textarea', {
-                  value: formData.linkedinUrls,
-                  onChange: (e) => setFormData({ ...formData, linkedinUrls: e.target.value }),
-                  rows: 4,
-                  placeholder: 'https://www.linkedin.com/jobs/view/123456789\nhttps://www.linkedin.com/jobs/view/987654321\n(One URL per line)',
-                  className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
-                }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter one LinkedIn job URL per line')
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' },
-                  React.createElement(Link, { className: 'w-4 h-4 inline mr-2' }),
-                  'RigZone Job Links'
-                ),
-                React.createElement('textarea', {
-                  value: formData.rigzoneUrls,
-                  onChange: (e) => setFormData({ ...formData, rigzoneUrls: e.target.value }),
-                  rows: 4,
-                  placeholder: 'https://www.rigzone.com/jobs/posting/123456\nhttps://www.rigzone.com/jobs/posting/654321\n(One URL per line)',
-                  className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
-                }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter one RigZone job URL per line')
-              ),
-              status.message && React.createElement('div', { 
-                className: `p-4 rounded-lg flex items-start ${status.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`
-              },
-                status.type === 'success' ? 
-                  React.createElement(CheckCircle, { className: 'w-5 h-5 mr-2 flex-shrink-0 mt-0.5' }) :
-                  React.createElement(AlertCircle, { className: 'w-5 h-5 mr-2 flex-shrink-0 mt-0.5' }),
-                React.createElement('span', null, status.message)
-              ),
-              React.createElement('button', {
-                onClick: handleSubmit,
-                disabled: loading,
-                className: 'w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
-              },
-                loading ? 
-                  React.createElement(React.Fragment, null,
-                    React.createElement('div', { className: 'animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2' }),
-                    'Processing...'
-                  ) :
-                  React.createElement(React.Fragment, null,
-                    React.createElement(Send, { className: 'w-5 h-5 mr-2' }),
-                    'Submit to Workflow'
-                  )
-              )
-            ),
-            React.createElement('div', { className: 'mt-8 pt-6 border-t border-gray-200' },
-              React.createElement('h3', { className: 'text-sm font-semibold text-gray-700 mb-2' }, 'How it works:'),
-              React.createElement('ul', { className: 'text-sm text-gray-600 space-y-1' },
-                React.createElement('li', null, '1. Enter your n8n workflow webhook URL'),
-                React.createElement('li', null, '2. Upload your CV (text, PDF, or Word document)'),
-                React.createElement('li', null, '3. Paste job links from LinkedIn and RigZone (one per line)'),
-                React.createElement('li', null, '4. Submit to trigger your n8n workflow')
-              ),
-              React.createElement('div', { className: 'mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg' },
-                React.createElement('h4', { className: 'text-sm font-semibold text-yellow-800 mb-2' }, '⚠️ Important: CORS Setup Required'),
-                React.createElement('p', { className: 'text-xs text-yellow-700 mb-2' }, 
-                  'Your n8n webhook must allow requests from this domain. In your n8n Webhook node:'
-                ),
-                React.createElement('ul', { className: 'text-xs text-yellow-700 space-y-1 list-disc list-inside' },
-                  React.createElement('li', null, 'Set "Response Mode" to "Using Webhook"'),
-                  React.createElement('li', null, 'Enable "OPTIONS Method"'),
-                  React.createElement('li', null, 
-                    'Add header: ',
-                    React.createElement('code', { className: 'bg-yellow-100 px-1' }, 'Access-Control-Allow-Origin: *')
-                  )
-                ),
-                React.createElement('p', { className: 'text-xs text-yellow-700 mt-2' },
-                  'Open browser DevTools (F12) → Console tab to see detailed error messages.'
-                )
-              )
-            )
-          )
-        )
-      );
+    } catch (err) {
+      console.error('Submit error:', err);
+      setStatus({
+        type: 'error',
+        message: err.message || 'Failed to submit to workflow. Check browser console for details.'
+      });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(React.createElement(N8NWorkflowForm));
-  </script>
-</body>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <Briefcase className="w-16 h-16 text-indigo-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Job Search Workflow
+            </h1>
+            <p className="text-gray-600">
+              Upload your CV and add job links to process through n8n
+            </p>
+          </div>
 
-</html>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                N8N Webhook URL *
+              </label>
+              <input
+                type="url"
+                value={formData.n8nWebhookUrl}
+                onChange={(e) => setFormData({ ...formData, n8nWebhookUrl: e.target.value })}
+                placeholder="https://your-n8n-instance.com/webhook/..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your n8n workflow webhook URL
+              </p>
+            </div>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-indigo-400 transition-colors">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <Upload className="w-5 h-5 inline mr-2" />
+                Upload CV *
+              </label>
+              <input
+                type="file"
+                onChange={handleFileUpload}
+                accept=".txt,.pdf,.doc,.docx"
+                className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+              {formData.cvFile && (
+                <p className="text-sm text-green-600 mt-2 flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  {formData.cvFile.name}
+                </p>
+              )}
+            </div>
+
+            {formData.cvText && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  CV Preview
+                </label>
+                <textarea
+                  value={formData.cvText}
+                  onChange={(e) => setFormData({ ...formData, cvText: e.target.value })}
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
+                  placeholder="CV content will appear here..."
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Link className="w-4 h-4 inline mr-2" />
+                LinkedIn Job Links
+              </label>
+              <textarea
+                value={formData.linkedinUrls}
+                onChange={(e) => setFormData({ ...formData, linkedinUrls: e.target.value })}
+                rows={4}
+                placeholder={'https://www.linkedin.com/jobs/view/123456789\nhttps://www.linkedin.com/jobs/view/987654321\n(One URL per line)'}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter one LinkedIn job URL per line
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <Link className="w-4 h-4 inline mr-2" />
+                RigZone Job Links
+              </label>
+              <textarea
+                value={formData.rigzoneUrls}
+                onChange={(e) => setFormData({ ...formData, rigzoneUrls: e.target.value })}
+                rows={4}
+                placeholder={'https://www.rigzone.com/jobs/posting/123456\nhttps://www.rigzone.com/jobs/posting/654321\n(One URL per line)'}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter one RigZone job URL per line
+              </p>
+            </div>
+
+            {status.message && (
+              <div className={`p-4 rounded-lg flex items-start ${
+                status.type === 'success' 
+                  ? 'bg-green-50 text-green-800 border border-green-200' 
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}>
+                {status.type === 'success' ? (
+                  <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                )}
+                <span>{status.message}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  Submit to Workflow
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">How it works:</h3>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>1. Enter your n8n workflow webhook URL</li>
+              <li>2. Upload your CV (text, PDF, or Word document)</li>
+              <li>3. Paste job links from LinkedIn and RigZone (one per line)</li>
+              <li>4. Submit to trigger your n8n workflow</li>
+            </ul>
+            
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="text-sm font-semibold text-yellow-800 mb-2">⚠️ Important: CORS Setup Required</h4>
+              <p className="text-xs text-yellow-700 mb-2">
+                Your n8n webhook must allow requests from this domain. In your n8n Webhook node:
+              </p>
+              <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
+                <li>Set "Response Mode" to "Using Webhook"</li>
+                <li>Enable "OPTIONS Method"</li>
+                <li>Add header: <code className="bg-yellow-100 px-1">Access-Control-Allow-Origin: *</code></li>
+              </ul>
+              <p className="text-xs text-yellow-700 mt-2">
+                Open browser DevTools (F12) → Console tab to see detailed error messages.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
