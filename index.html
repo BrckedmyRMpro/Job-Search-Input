@@ -12,15 +12,17 @@
   <script type="module">
     import React, { useState } from 'https://esm.sh/react@18';
     import ReactDOM from 'https://esm.sh/react-dom@18/client';
-    import { Upload, Briefcase, Link, Send, CheckCircle, AlertCircle } from 'https://esm.sh/lucide-react@0.263.1';
+    import { Upload, Briefcase, Link, Send, CheckCircle, AlertCircle, FileText } from 'https://esm.sh/lucide-react@0.263.1';
 
     function N8NWorkflowForm() {
       const [formData, setFormData] = useState({
         cvFile: null,
         cvText: '',
+        cvPastedText: '',
         linkedinUrls: '',
         rigzoneUrls: '',
-        n8nWebhookUrl: ''
+        n8nWebhookUrl: '',
+        inputMethod: 'paste' // 'paste' or 'upload'
       });
       const [status, setStatus] = useState({ type: '', message: '' });
       const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@
       const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-          setFormData({ ...formData, cvFile: file });
+          setFormData({ ...formData, cvFile: file, inputMethod: 'upload' });
           
           const reader = new FileReader();
           reader.onload = (event) => {
@@ -53,8 +55,11 @@
             throw new Error('Please enter your n8n webhook URL');
           }
 
-          if (!formData.cvText) {
-            throw new Error('Please upload a CV file');
+          // Check if either file upload or pasted text is provided
+          const cvContent = formData.inputMethod === 'paste' ? formData.cvPastedText : formData.cvText;
+          
+          if (!cvContent || cvContent.trim().length === 0) {
+            throw new Error('Please either upload a CV file or paste your CV text');
           }
 
           const linkedinLinks = formData.linkedinUrls
@@ -68,9 +73,10 @@
             .filter(url => url.length > 0);
 
           const payload = {
-            cvData: formData.cvText,
-            cvFileName: formData.cvFile?.name || 'cv.txt',
-            cvFileType: formData.cvFile?.type || 'text/plain',
+            cvData: cvContent,
+            cvFileName: formData.inputMethod === 'upload' ? (formData.cvFile?.name || 'cv.txt') : 'pasted-cv.txt',
+            cvFileType: formData.inputMethod === 'upload' ? (formData.cvFile?.type || 'text/plain') : 'text/plain',
+            inputMethod: formData.inputMethod,
             jobLinks: {
               linkedin: linkedinLinks,
               rigzone: rigzoneLinks
@@ -109,8 +115,10 @@
             ...formData,
             cvFile: null,
             cvText: '',
+            cvPastedText: '',
             linkedinUrls: '',
-            rigzoneUrls: ''
+            rigzoneUrls: '',
+            inputMethod: 'paste'
           });
 
         } catch (err) {
@@ -146,34 +154,87 @@
                 }),
                 React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your n8n workflow webhook URL')
               ),
-              React.createElement('div', { className: 'border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-indigo-400 transition-colors' },
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-3' },
-                  React.createElement(Upload, { className: 'w-5 h-5 inline mr-2' }),
-                  'Upload CV *'
-                ),
-                React.createElement('input', {
-                  type: 'file',
-                  onChange: handleFileUpload,
-                  accept: '.txt,.pdf,.doc,.docx',
-                  className: 'w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
-                }),
-                formData.cvFile && React.createElement('p', { className: 'text-sm text-green-600 mt-2 flex items-center' },
-                  React.createElement(CheckCircle, { className: 'w-4 h-4 mr-1' }),
-                  formData.cvFile.name
-                )
-              ),
-              formData.cvText && React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' }, 'CV File Ready'),
-                React.createElement('div', { className: 'p-4 bg-green-50 border border-green-200 rounded-lg' },
-                  React.createElement('p', { className: 'text-sm text-green-700' },
-                    `File: ${formData.cvFile?.name || 'Unknown'}`,
-                    React.createElement('br'),
-                    `Type: ${formData.cvFile?.type || 'Unknown'}`,
-                    React.createElement('br'),
-                    `Size: ${formData.cvFile ? (formData.cvFile.size / 1024).toFixed(2) + ' KB' : 'Unknown'}`
+              
+              React.createElement('div', { className: 'border-2 border-gray-200 rounded-lg p-6 bg-gray-50' },
+                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-3' }, 'CV Input Method *'),
+                React.createElement('div', { className: 'flex gap-4 mb-4' },
+                  React.createElement('button', {
+                    onClick: () => setFormData({ ...formData, inputMethod: 'paste', cvFile: null, cvText: '' }),
+                    className: `flex-1 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                      formData.inputMethod === 'paste' 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-indigo-400'
+                    }`
+                  },
+                    React.createElement(FileText, { className: 'w-5 h-5 inline mr-2' }),
+                    'Paste Text'
+                  ),
+                  React.createElement('button', {
+                    onClick: () => setFormData({ ...formData, inputMethod: 'upload', cvPastedText: '' }),
+                    className: `flex-1 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                      formData.inputMethod === 'upload' 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-indigo-400'
+                    }`
+                  },
+                    React.createElement(Upload, { className: 'w-5 h-5 inline mr-2' }),
+                    'Upload File'
                   )
                 )
               ),
+
+              formData.inputMethod === 'paste' && React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' },
+                  React.createElement(FileText, { className: 'w-4 h-4 inline mr-2' }),
+                  'Paste Your CV Text *'
+                ),
+                React.createElement('textarea', {
+                  value: formData.cvPastedText,
+                  onChange: (e) => setFormData({ ...formData, cvPastedText: e.target.value }),
+                  rows: 12,
+                  placeholder: 'Paste your CV content here...\n\nExample:\nJohn Doe\nSenior Engineer\nEmail: john@example.com\n\nExperience:\n- Company A (2020-2023)\n- Company B (2018-2020)\n\nSkills:\n- JavaScript, Python, React...',
+                  className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm'
+                }),
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Copy your CV text and paste it here')
+              ),
+
+              formData.inputMethod === 'upload' && React.createElement('div', null,
+                React.createElement('div', { className: 'border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-indigo-400 transition-colors' },
+                  React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-3' },
+                    React.createElement(Upload, { className: 'w-5 h-5 inline mr-2' }),
+                    'Upload CV File *'
+                  ),
+                  React.createElement('input', {
+                    type: 'file',
+                    onChange: handleFileUpload,
+                    accept: '.txt,.doc,.docx',
+                    className: 'w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
+                  }),
+                  formData.cvFile && React.createElement('p', { className: 'text-sm text-green-600 mt-2 flex items-center' },
+                    React.createElement(CheckCircle, { className: 'w-4 h-4 mr-1' }),
+                    formData.cvFile.name
+                  )
+                ),
+                React.createElement('div', { className: 'mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg' },
+                  React.createElement('p', { className: 'text-xs text-yellow-800 font-semibold' }, '⚠️ Note: PDF files are not supported'),
+                  React.createElement('p', { className: 'text-xs text-yellow-700 mt-1' }, 
+                    'Please upload Word documents (.doc, .docx) or text files (.txt) only. For best results, consider using the "Paste Text" option instead.'
+                  )
+                ),
+                formData.cvText && React.createElement('div', { className: 'mt-4' },
+                  React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' }, 'CV File Ready'),
+                  React.createElement('div', { className: 'p-4 bg-green-50 border border-green-200 rounded-lg' },
+                    React.createElement('p', { className: 'text-sm text-green-700' },
+                      `File: ${formData.cvFile?.name || 'Unknown'}`,
+                      React.createElement('br'),
+                      `Type: ${formData.cvFile?.type || 'Unknown'}`,
+                      React.createElement('br'),
+                      `Size: ${formData.cvFile ? (formData.cvFile.size / 1024).toFixed(2) + ' KB' : 'Unknown'}`
+                    )
+                  )
+                )
+              ),
+
               React.createElement('div', null,
                 React.createElement('label', { className: 'block text-sm font-semibold text-gray-700 mb-2' },
                   React.createElement(Link, { className: 'w-4 h-4 inline mr-2' }),
@@ -230,14 +291,14 @@
               React.createElement('h3', { className: 'text-sm font-semibold text-gray-700 mb-2' }, 'How it works:'),
               React.createElement('ul', { className: 'text-sm text-gray-600 space-y-1' },
                 React.createElement('li', null, '1. Enter your n8n workflow webhook URL'),
-                React.createElement('li', null, '2. Upload your CV (text, PDF, or Word document)'),
+                React.createElement('li', null, '2. Choose to paste CV text or upload a Word/text file (PDF not supported)'),
                 React.createElement('li', null, '3. Paste job links from LinkedIn and RigZone (one per line)'),
                 React.createElement('li', null, '4. Submit to trigger your n8n workflow')
               ),
               React.createElement('div', { className: 'mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg' },
-                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '📄 File Handling'),
+                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '💡 Tip: Use Paste Text Method'),
                 React.createElement('p', { className: 'text-xs text-blue-700' },
-                  'Files are sent as Base64-encoded data. Your n8n workflow will receive: cvData (base64 string), cvFileName, and cvFileType. Use a Code node or file processing node to decode and process the file.'
+                  'For best compatibility and fastest processing, we recommend using the "Paste Text" option. Simply copy your CV content and paste it directly into the text area.'
                 )
               )
             )
