@@ -83,7 +83,7 @@
             timestamp: new Date().toISOString()
           };
 
-          console.log('Sending payload to n8n:', payload);
+          console.log('Uploading.....:', payload);
 
           const response = await fetch(formData.n8nWebhookUrl, {
             method: 'POST',
@@ -124,7 +124,7 @@
           console.error('Submit error:', err);
           setStatus({
             type: 'error',
-            message: err.message || 'Failed to upload your data, try again ensuring that all fields have been filled.'
+            message: err.message || 'Failed to upload your data, try again ensuring that all fields have been correctly entered.'
           });
         } finally {
           setLoading(false);
@@ -139,7 +139,7 @@
                 React.createElement(Briefcase, { className: 'w-16 h-16 text-indigo-600' })
               ),
               React.createElement('h1', { className: 'text-3xl font-bold text-gray-900 mb-2' }, 'Job Search Workflow'),
-              React.createElement('p', { className: 'text-gray-600' }, 'Upload your CV and add job links to process through n8n')
+              React.createElement('p', { className: 'text-gray-600' }, 'Upload your CV and add job links to continue')
             ),
             React.createElement('div', { className: 'space-y-6' },
               React.createElement('div', null,
@@ -148,10 +148,10 @@
                   type: 'url',
                   value: formData.n8nWebhookUrl,
                   onChange: (e) => setFormData({ ...formData, n8nWebhookUrl: e.target.value }),
-                  placeholder: 'https://your-n8n-instance.com/webhook/...',
+                  placeholder: 'https://your-unique-n8n-instance.com/webhook/...',
                   className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
                 }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your unique n8n workflow webhook URL')
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your unique n8n webhook URL')
               ),
               
               React.createElement('div', { className: 'border-2 border-gray-200 rounded-lg p-6 bg-gray-50' },
@@ -194,7 +194,7 @@
                   placeholder: 'Paste your CV content here...\n\nExample:\nJohn Doe\nSenior Engineer\nEmail: john@example.com\n\nExperience:\n- Company A (2020-2023)\n- Company B (2018-2020)\n\nSkills:\n- JavaScript, Python, React...',
                   className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm'
                 }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Copy your CV text and paste it here')
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Or copy your CV text and paste it here')
               ),
 
               formData.inputMethod === 'upload' && React.createElement('div', null,
@@ -217,7 +217,7 @@
                 React.createElement('div', { className: 'mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg' },
                   React.createElement('p', { className: 'text-xs text-yellow-800 font-semibold' }, '⚠️ Note: PDF files are not supported'),
                   React.createElement('p', { className: 'text-xs text-yellow-700 mt-1' }, 
-                    'Please upload Word documents (.doc, .docx, .rtf) or text files (.txt) only. Or you can use the "Copy / Paste Text" option instead.'
+                    'Please upload Word documents (.doc, .docx, .rtf or .txt) only. Or you can use the "Copy / Paste Text" option instead.'
                   )
                 ),
                 formData.cvText && React.createElement('div', { className: 'mt-4' },
@@ -289,15 +289,15 @@
             React.createElement('div', { className: 'mt-8 pt-6 border-t border-gray-200' },
               React.createElement('h3', { className: 'text-sm font-semibold text-gray-700 mb-2' }, 'How it works:'),
               React.createElement('ul', { className: 'text-sm text-gray-600 space-y-1' },
-                React.createElement('li', null, '1. Enter your n8n workflow webhook URL'),
-                React.createElement('li', null, '2. Choose to paste CV text or upload a Word/text file (PDF not supported)'),
-                React.createElement('li', null, '3. Paste job links from LinkedIn and RigZone (one per line)'),
-                React.createElement('li', null, '4. Submit to trigger your n8n workflow')
+                React.createElement('li', null, '1. Enter your unique webhook URL'),
+                React.createElement('li', null, '2. Choose to paste CV text or upload a Word/text file (PDF's are not supported)'),
+                React.createElement('li', null, '3. Paste 3 job links from LinkedIn and RigZone (one per line)'),
+                React.createElement('li', null, '4. Submit to upload data to your unique job search engine')
               ),
               React.createElement('div', { className: 'mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg' },
-                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '💡 Tip: For best Job Search Links'),
+                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '💡 Tips: For best Job Search Links'),
                 React.createElement('p', { className: 'text-sm text-blue-700' },
-                  'Sign-in to your account and create search links using your desired position and Country for different locations: ',
+                  'Sign-in to your account and create search links using your desired position and Country for 3 different locations: ',
                   React.createElement('a', { 
                     href: 'https://www.rigzone.com/oil/jobs/', 
                     target: '_blank',
