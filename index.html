@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>N8N Job Search Workflow</title>
+  <title>Job Search Workflow</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
@@ -52,7 +52,7 @@
 
         try {
           if (!formData.n8nWebhookUrl) {
-            throw new Error('Please enter your unique n8n webhook URL');
+            throw new Error('Please enter your unique webhook URL');
           }
 
           const cvContent = formData.inputMethod === 'paste' ? formData.cvPastedText : formData.cvText;
