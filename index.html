@@ -22,7 +22,7 @@
         linkedinUrls: '',
         rigzoneUrls: '',
         n8nWebhookUrl: '',
-        inputMethod: 'paste' // 'paste' or 'upload'
+        inputMethod: 'paste'
       });
       const [status, setStatus] = useState({ type: '', message: '' });
       const [loading, setLoading] = useState(false);
@@ -52,10 +52,9 @@
 
         try {
           if (!formData.n8nWebhookUrl) {
-            throw new Error('Please enter your n8n webhook URL');
+            throw new Error('Please enter your unique n8n webhook URL');
           }
 
-          // Check if either file upload or pasted text is provided
           const cvContent = formData.inputMethod === 'paste' ? formData.cvPastedText : formData.cvText;
           
           if (!cvContent || cvContent.trim().length === 0) {
@@ -108,7 +107,7 @@
 
           setStatus({
             type: 'success',
-            message: 'Successfully submitted to n8n workflow! Check console for details.'
+            message: 'Successfully uploaded your details.'
           });
 
           setFormData({
@@ -125,7 +124,7 @@
           console.error('Submit error:', err);
           setStatus({
             type: 'error',
-            message: err.message || 'Failed to submit to workflow. Check browser console for details.'
+            message: err.message || 'Failed to upload your data, try again ensuring that all fields have been filled.'
           });
         } finally {
           setLoading(false);
@@ -152,7 +151,7 @@
                   placeholder: 'https://your-n8n-instance.com/webhook/...',
                   className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent'
                 }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your n8n workflow webhook URL')
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Enter your unique n8n workflow webhook URL')
               ),
               
               React.createElement('div', { className: 'border-2 border-gray-200 rounded-lg p-6 bg-gray-50' },
@@ -218,7 +217,7 @@
                 React.createElement('div', { className: 'mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg' },
                   React.createElement('p', { className: 'text-xs text-yellow-800 font-semibold' }, '⚠️ Note: PDF files are not supported'),
                   React.createElement('p', { className: 'text-xs text-yellow-700 mt-1' }, 
-                    'Please upload Word documents (.doc, .docx) or text files (.txt) only. For best results, consider using the "Paste Text" option instead.'
+                    'Please upload Word documents (.doc, .docx, .rtf) or text files (.txt) only. Or you can use the "Copy / Paste Text" option instead.'
                   )
                 ),
                 formData.cvText && React.createElement('div', { className: 'mt-4' },
@@ -296,9 +295,22 @@
                 React.createElement('li', null, '4. Submit to trigger your n8n workflow')
               ),
               React.createElement('div', { className: 'mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg' },
-                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '💡 Tip: Use Paste Text Method'),
-                React.createElement('p', { className: 'text-xs text-blue-700' },
-                  'For best compatibility and fastest processing, we recommend using the "Paste Text" option. Simply copy your CV content and paste it directly into the text area.'
+                React.createElement('h4', { className: 'text-sm font-semibold text-blue-800 mb-2' }, '💡 Tip: For best Job Search Links'),
+                React.createElement('p', { className: 'text-sm text-blue-700' },
+                  'Sign-in to your account and create search links using your desired position and Country for different locations: ',
+                  React.createElement('a', { 
+                    href: 'https://www.rigzone.com/oil/jobs/', 
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    className: 'font-semibold underline hover:text-blue-900'
+                  }, 'RigZone'),
+                  ' and ',
+                  React.createElement('a', { 
+                    href: 'https://www.linkedin.com/home', 
+                    target: '_blank',
+                    rel: 'noopener noreferrer',
+                    className: 'font-semibold underline hover:text-blue-900'
+                  }, 'LinkedIn')
                 )
               )
             )
